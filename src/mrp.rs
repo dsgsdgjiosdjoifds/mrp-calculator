@@ -1,7 +1,6 @@
 use crate::item::{BomLink, Item, LotSize};
 use std::collections::HashMap;
 
-/// Wynik MRP dla jednego produktu - wszystkie wiersze tabeli MRP.
 #[derive(Debug, Clone)]
 pub struct MrpRecord {
     pub item_id: String,
@@ -31,17 +30,14 @@ pub fn calculate(
     demand: &[(String, u32, u32)],
     periods: u32,
 ) -> MrpPlan {
-    // Indeks po id dla szybkiego dostępu.
     let items_by_id: HashMap<String, Item> =
         items.iter().map(|i| (i.id.clone(), i.clone())).collect();
 
-    // Akumulator brutto-zapotrzebowania (z popytu niezależnego + zleceń rodziców).
     let mut gross: HashMap<String, Vec<u32>> = items
         .iter()
         .map(|i| (i.id.clone(), vec![0; periods as usize]))
         .collect();
 
-    // Wstrzykujemy popyt niezależny.
     for (id, period, qty) in demand {
         if let Some(row) = gross.get_mut(id) {
             if (*period as usize) < row.len() {
@@ -50,7 +46,6 @@ pub fn calculate(
         }
     }
 
-    // Posortuj produkty po poziomie rosnąco - najpierw końcowe (level 0).
     let mut order: Vec<&Item> = items.iter().collect();
     order.sort_by_key(|i| i.level);
 
@@ -63,7 +58,6 @@ pub fn calculate(
             .unwrap_or_else(|| vec![0; periods as usize]);
         let rec = compute_record(item, &gr, periods);
 
-        // Propagacja w dół BOM: planowane wydania zleceń stają się brutto-zapotrzebowaniem dzieci.
         for link in boms.iter().filter(|l| l.parent == item.id) {
             if let Some(child_row) = gross.get_mut(&link.child) {
                 for p in 0..periods as usize {
@@ -75,7 +69,6 @@ pub fn calculate(
         records.push(rec);
     }
 
-    // Posortuj wynikowe rekordy w kolejności wejściowej items dla czytelności.
     let order_index: HashMap<String, usize> = items
         .iter()
         .enumerate()
@@ -83,7 +76,6 @@ pub fn calculate(
         .collect();
     records.sort_by_key(|r| order_index.get(&r.item_id).copied().unwrap_or(usize::MAX));
 
-    // Uzupełnij brakujący kontekst (nie wszystkie itemy muszą być w boms).
     let _ = items_by_id;
 
     MrpPlan { periods, records }
@@ -109,23 +101,20 @@ fn compute_record(item: &Item, gross_req: &[u32], periods: u32) -> MrpRecord {
     let mut prev_on_hand: i64 = item.on_hand as i64;
 
     for p in 0..n {
-        // Wstępny stan po uwzględnieniu zaplanowanych dostaw i popytu.
         let tentative = prev_on_hand + scheduled[p] as i64 - gross_req[p] as i64;
 
         if tentative < ss {
-            // Brakuje - potrzebujemy net req tyle, by wrócić do poziomu safety stock.
             let shortage = (ss - tentative) as u32;
             let order_qty = apply_lot_size(shortage, &item.lot_size);
             net[p] = shortage;
             receipts[p] = order_qty;
-            // Wydanie zlecenia: cofamy o lead time.
+
             if p >= lt {
                 releases[p - lt] += order_qty;
             } else {
-                // Nie da się - zlecenie musiałoby zostać wydane "przed startem".
-                // Sygnalizujemy umieszczając w okresie 0 (alarm: spóźnione zlecenie).
                 releases[0] += order_qty;
             }
+
             projected[p] = tentative + order_qty as i64;
         } else {
             projected[p] = tentative;
@@ -150,6 +139,7 @@ fn apply_lot_size(needed: u32, lot: &LotSize) -> u32 {
     if needed == 0 {
         return 0;
     }
+
     match lot {
         LotSize::LotForLot => needed,
         LotSize::FixedBatch(b) => {

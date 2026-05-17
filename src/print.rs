@@ -32,7 +32,6 @@ fn print_record(item: &Item, rec: &crate::mrp::MrpRecord) {
     let col_w = 6;
     let label_w = 28;
 
-    // Nagłówek okresów.
     print!("{:label_w$}", "Okres:", label_w = label_w);
     for p in 0..n {
         print!("{:>w$}", p + 1, w = col_w);
@@ -66,7 +65,6 @@ fn print_record(item: &Item, rec: &crate::mrp::MrpRecord) {
         &rec.planned_order_releases,
     );
 
-    // Ostrzeżenie o spóźnieniu: jeśli net req w okresie p < lead_time wymusił release w okresie 0.
     let lt = item.lead_time as usize;
     let mut late = false;
     for p in 0..lt.min(n) {
