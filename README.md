@@ -15,13 +15,27 @@ Prosta aplikacja konsolowa w Rust obliczająca zapotrzebowanie materiałowe zgod
   - `Minimum(n)`: co najmniej `n`
 - Ostrzeżenie o spóźnionych zleceniach (gdy potrzeba przekracza lead time)
 
+## Przykładowe działanie
+
+<details><summary>Obliczenia dla roweru</summary>
+
+![Obliczenia MRP dla roweru](screenshots/mrp-rower.png)
+
+</details>
+
+<details><summary>Obliczenia dla drewnianego stołu</summary>
+
+![Obliczenia MRP dla drewnianego stołu](screenshots/mrp-stol-drewniany.png)
+
+</details>
+
 ## Uruchomienie
 
 ```bash
 cargo run
 ```
 
-Program wypisze tabelę MRP dla każdego produktu z przykładowego scenariusza (rower → rama + 2 koła → rurki / szprychy).
+Program wypisze tabelę MRP dla każdego produktu z przykładowego scenariusza (stół → blat + 4 nogi → deski / śruby).
 
 ## Struktura kodu
 
